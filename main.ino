@@ -8,13 +8,12 @@ UC_DCMotor leftMotorFront(3, MOTOR34_64KHZ);
 UC_DCMotor rightMotorFront(4, MOTOR34_64KHZ);
 UC_DCMotor leftMotorBack(1, MOTOR34_64KHZ);
 UC_DCMotor rightMotorBack(2, MOTOR34_64KHZ);
-Servo myservo; 
+Servo servo; 
 void setup() {
   // put your setup code here, to run once:
-    myservo.attach(10);
+    servo.attach(10);
     Serial.begin(9600);
 }
-int servo_position = 0;
 
 #define TRIG_PIN A2
 #define ECHO_PIN A3
@@ -73,8 +72,11 @@ void setMotor(UC_DCMotor& motor, int16_t speed) {
     motor.setSpeed(abs_val);
 }
 
-void drive(int16_t speed, int16_t angle) {
-    
+void drive(int16_t speed) {
+    setMotor(leftMotorFront, speed);
+    setMotor(leftMotorBack, speed);
+    setMotor(rightMotorFront, speed);
+    setMotor(rightMotorBack, speed);
 }
 
 void rotateTank(int16_t angle) {
@@ -115,65 +117,30 @@ void rotateTank(int16_t angle) {
     
 }
 
+int currentSpeed;
+int distance;
 
 void loop() {
- /*for (servo_position = 0; servo_position <=180; servo_position +=10){
+    distance = readPing();
 
-    myservo.write(servo_position);
-    Serial.print(readPing());
-    Serial.print(" ");
-    Serial.print(myservo.read());
-    Serial.println();
-    delay(1000);
-  }
+    if(distance > 120) currentSpeed = 200;
+    else if(distance > 80) currentSpeed = 150;
+    else if(distance > 60) currentSpeed = 100;
 
-  for (servo_position=180; servo_position >= 0; servo_position -=10){
+    drive(currentSpeed);
 
-    myservo.write(servo_position);
-    Serial.print(readPing());
-    Serial.print(" ");
-    Serial.print(myservo.read());
-    Serial.println();
-    delay(1000);
-  }*/
+    if(distance < 40) {
+        drive(50);
+        
+        //check the right, check the left
+        servo.write(0); delay(400);
+        int distance_right = readPing();
+        servo.write(180); delay(400);
+        int distance_left = readPing();
+        servo.write(90); delay(400);
 
+        if(distance_right > distance_left) rotateTank(90);
+        else rotateTank(-90);
 
-//1 is forward 2 is backward
-/*setMotor(leftMotorFront, 100);
-setMotor(leftMotorBack, 100);
-setMotor(rightMotorFront, 100);
-setMotor(rightMotorBack, 100);*/
-
-
-rotateTank(45);
-delay(5000);
-//rotateTank(-180);
-//delay(1000);
-
-/*
-  //Forward
-       // leftMotor1.run(0x01); rightMotor1.run(0x01);
-        leftMotor2.run(0x01); rightMotor2.run(0x01);
-        leftMotor1.setSpeed(200); rightMotor1.setSpeed(200);
-        leftMotor2.setSpeed(200); rightMotor2.setSpeed(200);
-        delay(2000);
-   //Backward
-        leftMotor1.run(0x02); rightMotor1.run(0x02);
-        leftMotor2.run(0x02); rightMotor2.run(0x02);
-        leftMotor1.setSpeed(200); rightMotor1.setSpeed(200);
-        leftMotor2.setSpeed(200); rightMotor2.setSpeed(200);
-        delay(2000);
-    //left
-        leftMotor1.run(0x03); rightMotor1.run(0x03);
-        leftMotor2.run(0x03); rightMotor2.run(0x03);
-        leftMotor1.setSpeed(200); rightMotor1.setSpeed(200);
-        leftMotor2.setSpeed(200); rightMotor2.setSpeed(200);
-        delay(2000); 
-    //Right
-        leftMotor1.run(0x04); rightMotor1.run(0x04);
-        leftMotor2.run(0x04); rightMotor2.run(0x04);
-        leftMotor1.setSpeed(200); rightMotor1.setSpeed(200);
-        leftMotor2.setSpeed(200); rightMotor2.setSpeed(200);
-        delay(2000);      
-*/
+    }
 }
