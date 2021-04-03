@@ -9,20 +9,27 @@ UC_DCMotor rightMotorFront(4, MOTOR34_64KHZ);
 UC_DCMotor leftMotorBack(1, MOTOR34_64KHZ);
 UC_DCMotor rightMotorBack(2, MOTOR34_64KHZ);
 Servo servo; 
-void setup() {
-  // put your setup code here, to run once:
-    servo.attach(10);
-    Serial.begin(9600);
-}
-
 #define TRIG_PIN A2
 #define ECHO_PIN A3
+
+#define LeftSensor A0
+#define MiddleSensor A1
+#define RightSensor 13
+
+void setup() {
+    servo.attach(10);
+    Serial.begin(9600);
+    pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
+    pinMode(LeftSensor, INPUT); pinMode(MiddleSensor, INPUT); pinMode(RightSensor, INPUT);
+}
+
+
 int getUltrasonicVal(void)
   {
       unsigned char cnt = 0;
       long cm, beginTime, stopTime;
       long waitCount = 0;
-      pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
+      
       digitalWrite(TRIG_PIN, LOW); delayMicroseconds(2);
       digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(5);
       digitalWrite(TRIG_PIN, LOW);  waitCount = 0;
@@ -101,19 +108,27 @@ void rotateTank(int16_t angle) {
         setMotor(rightMotorBack, -200);
     }
 
+    //ON JACOBS FLOOR
     //90: 475ms
     //180: 930ms
     //270: 1375ms
     //360: 1860ms
-    //linear regression: a = 5.111111, 10
-    uint16_t wait_time = (uint16_t)(5.111111 * (float)abs_val + 10);
+    //linear regression: a = 5.111111, b = 10
+    //uint16_t wait_time = (uint16_t)(5.111111 * (float)abs_val + 10);
+
+    //ON LAURENS FLOOR
+    //90: 410ms
+    //180: 775ms
+    //270: 1080ms
+    //360: 1450ms
+    //linear regression: a = 3.80556, b = 72.5
+    uint16_t wait_time = (uint16_t)(3.80556 * (float)abs_val + 72.5);
+    //uint16_t wait_time = 775;
     delay(wait_time);
     setMotor(leftMotorFront, 0);
     setMotor(leftMotorBack, 0);
     setMotor(rightMotorFront, 0);
     setMotor(rightMotorBack, 0);
-
-    Serial.println(wait_time);
     
 }
 
@@ -121,16 +136,46 @@ int currentSpeed;
 int distance;
 
 void loop() {
-    distance = readPing();
 
-    if(distance > 120) currentSpeed = 200;
-    else if(distance > 80) currentSpeed = 150;
-    else if(distance > 60) currentSpeed = 100;
+    //to read distance whil driving, read in small field of view
+    int distances[3];
+    servo.write(90); delay(100);
+    distances[0] = readPing();
+    servo.write(70); delay(100);
+    distances[1] = readPing();
+    servo.write(110); delay(100);
+    distances[2] = readPing();
+    servo.write(90); //reset
+
+    //distance 0 is the front, weight it at 50 percent
+    distance = (distances[0] * 65 + distances[1] * 15 + distances[2] * 15) / 95;
+
+    Serial.print(digitalRead(LeftSensor));  Serial.print(" ");
+    Serial.print(digitalRead(MiddleSensor)); Serial.print(" ");
+    Serial.print(digitalRead(RightSensor)); Serial.println();
+    
+
+    //Serial.write('a');
+    /*rotateTank(90);
+    delay(5000);
+    rotateTank(180);
+    delay(5000);
+    rotateTank(270);
+    delay(5000);
+    rotateTank(360);
+    delay(5000);*/
+
+    /*if (Serial.available())
+    {
+        servo.write(Serial.read());
+    }*/
+    if(distance > 100) currentSpeed = 200;
+    else if(distance > 80) currentSpeed = 125;
 
     drive(currentSpeed);
 
-    if(distance < 40) {
-        drive(50);
+    if(distance < 60) {
+        drive(40);
         
         //check the right, check the left
         servo.write(0); delay(400);
